@@ -102,7 +102,7 @@ export class UserService {
     const [at] = await Promise.all([
       this.jwt.signAsync(payload, {
         secret: atsecret,
-        expiresIn: '1d',
+        expiresIn: '12h',
       }),
     ]);
 
@@ -123,7 +123,7 @@ export class UserService {
 
     const at = await this.jwt.signAsync(payload, {
       secret: atsecret,
-      expiresIn: '1d',
+      expiresIn: '12h ',
     });
 
     return {

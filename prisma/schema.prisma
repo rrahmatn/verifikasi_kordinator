@@ -36,7 +36,7 @@ model verifikasi_koordinator {
 model users {
   id Int @id @default(autoincrement())
   username String?
-  nama String? @default("")
+  nama String? @default("nama")
   telepon String? @default("")
   password String
 

@@ -24,9 +24,7 @@ export class DataService {
     private config: ConfigService,
   ) {}
 
-  async deleteAll() {
-    const response = await this.prisma.verifikasi_koordinator.deleteMany();
-  }
+
 
   async convertExcelToJson(file: Express.Multer.File): Promise<any[]> {
     const nama = file.originalname.split('.');

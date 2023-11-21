@@ -266,7 +266,7 @@ export class DataController {
   }
 
   @UseGuards(JwtGuard)
-  @Delete('/delete/:id')
+  @Patch('/delete/:id')
   async deleteById(@Param('id') id: string, @Request() req: any) {
     return this.DataService.deleteById(parseInt(id), req);
   }
