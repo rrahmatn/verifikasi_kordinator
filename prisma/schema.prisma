@@ -25,14 +25,19 @@ model verifikasi_koordinator {
   alasan    String? @default("")
   image64    String? @default("")
 
+
+
+  modifikasi    String? @default("false")
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 }
 
 model users {
   id Int @id @default(autoincrement())
+  username String?
   nama String? @default("")
-  email String 
+  telepon String? @default("")
   password String
 
   created_at DateTime @default(now())

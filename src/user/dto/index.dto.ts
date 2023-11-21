@@ -1,7 +1,34 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 export class AddUserDto{
+    @IsString()
+    @ApiProperty()
+    @IsOptional()
+    nama : string
+
+    @IsString()
+    @ApiProperty()
+    @IsNotEmpty()
+    username : string
+
+    @IsString()
+    @ApiProperty()
+    @IsOptional()
+    telepon : string
+
+    @IsString()
+    @ApiProperty()
+    @IsNotEmpty()
+    password : string
+
+    @IsString()
+    @ApiProperty()
+    @IsNotEmpty()
+    confPassword : string
+
+}
+export class EditUser{
     @IsString()
     @ApiProperty()
     @IsNotEmpty()
@@ -10,7 +37,7 @@ export class AddUserDto{
     @IsString()
     @ApiProperty()
     @IsNotEmpty()
-    email : string
+    telepon : string
 
     @IsString()
     @ApiProperty()
@@ -28,7 +55,7 @@ export class Signin {
     @IsString()
     @ApiProperty()
     @IsNotEmpty()
-    email : string
+    username : string
 
     @IsString()
     @ApiProperty()

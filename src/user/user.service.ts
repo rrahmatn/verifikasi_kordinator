@@ -4,12 +4,20 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
 import * as argon from 'argon2';
-import { AddUserDto, Signin } from './dto/index.dto';
+import { AddUserDto, EditUser, Signin } from './dto/index.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { Token } from './type';
+
 @Injectable()
 export class UserService {
-  private readonly prisma = new PrismaClient();
+  constructor(
+    private prisma: PrismaService,
+    private jwt: JwtService,
+    private config: ConfigService,
+  ) {}
 
   async addUser(dto: AddUserDto) {
     if (dto.password !== dto.confPassword) {
@@ -20,7 +28,7 @@ export class UserService {
 
     const user = await this.prisma.users.findFirst({
       where: {
-        email: dto.email,
+        username: dto.username,
       },
     });
 
@@ -53,29 +61,117 @@ export class UserService {
   }
 
   async signin(dto: Signin) {
-    const user = await this.prisma.users.findFirst({
-      where: {
-        email: dto.email,
-      },
-    });
+    try {
+      const user = await this.prisma.users.findFirst({
+        where: {
+          username: dto.username,
+        },
+      });
 
-    if (!user) {
-      throw new NotFoundException('email tidak terdaftar');
+      if (!user) {
+        return {
+          status: 400,
+          message: `username atau password salah`,
+        };
+      }
+
+      const matches = await argon.verify(user.password, dto.password);
+
+      if (!matches) {
+        return {
+          status: 400,
+          message: `username atau password salah`,
+        };
+      }
+
+      delete user.password;
+
+      return this.signToken(user.id, user.nama);
+    } catch (error) {
+      throw new BadRequestException('server error ya');
     }
+  }
 
-    const matches = await argon.verify(user.password, dto.password);
+  async signToken(userId: number, name: string): Promise<Token> {
+    const payload = {
+      name,
+      sub: userId,
+    };
+    const atsecret = this.config.get('JWT_SECRET');
 
-    if (!matches) {
-      throw new BadRequestException('password salah');
-    }
-
-    delete user.password;
+    const [at] = await Promise.all([
+      this.jwt.signAsync(payload, {
+        secret: atsecret,
+        expiresIn: '1d',
+      }),
+    ]);
 
     return {
-      message: 'login berhasil',
+      nama: name,
       status: 200,
-      user,
+      access_token: at,
     };
+  }
+
+  async newToken(userId: number, name: string): Promise<Token> {
+    const payload = {
+      sub: userId,
+      name,
+    };
+
+    const atsecret = this.config.get('JWT_SECRET');
+
+    const at = await this.jwt.signAsync(payload, {
+      secret: atsecret,
+      expiresIn: '1d',
+    });
+
+    return {
+      nama: name,
+      status: 200,
+      access_token: at,
+    };
+  }
+
+  async firstLogin(req: any, dto: EditUser) {
+    if (dto.password !== dto.confPassword) {
+      throw new BadRequestException(
+        'password dan konfirmasi password tidak cocok',
+      );
+    }
+
+    const token = req.headers.authorization?.split(' ') ?? [];
+    const accessToken = token[1];
+
+    const payload = await this.jwt.verifyAsync(accessToken, {
+      secret: this.config.get('JWT_SECRET'),
+    });
+    const id = payload.sub;
+
+    const password = await argon.hash(dto.password);
+    delete dto.password;
+    delete dto.confPassword;
+
+    try {
+      const response = await this.prisma.users.update({
+        where: {
+          id,
+        },
+        data: {
+          password,
+          ...dto,
+        },
+      });
+
+      delete response.password;
+
+      return {
+        message: `berhasil mengubah data ${response.username}`,
+        response,
+      };
+    } catch (err) {
+      throw new BadGatewayException('server sedang sibuk');
+    }
   }
 
   async getUser(id: number) {
@@ -94,7 +190,4 @@ export class UserService {
       user,
     };
   }
-
-  
-  
 }

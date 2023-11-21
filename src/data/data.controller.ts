@@ -7,20 +7,25 @@ import {
   Param,
   Patch,
   Post,
+  Request,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DataService } from './data.service';
 import { Express } from 'express';
-import { AddDataDto, EditData, FilterKecamatanDto } from './dto/data.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { AddDataDto, EditData } from './dto/data.dto';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtGuard } from 'src/user/guard/jwt.guard';
 
 @ApiTags('data')
 @Controller('data')
+@ApiBearerAuth()
 export class DataController {
   constructor(private readonly DataService: DataService) {}
 
+  @UseGuards(JwtGuard)
   @Post('')
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
@@ -38,20 +43,25 @@ export class DataController {
     }
   }
 
+  @UseGuards(JwtGuard)
   @Delete()
-  async deleteAll(){
-    return this.DataService.deleteAll()
+  async deleteAll() {
+    return this.DataService.deleteAll();
   }
 
+  @UseGuards(JwtGuard)
   @Get('/page/:page')
   async getData(@Param('page') page: string) {
     return this.DataService.getData(parseInt(page));
   }
+
+  @UseGuards(JwtGuard)
   @Get('/all')
   async getAllData() {
     return this.DataService.getAllData();
   }
 
+  @UseGuards(JwtGuard)
   @Get('/nama/:nama/:page')
   async getDataByName(
     @Param('page') page: string,
@@ -59,14 +69,20 @@ export class DataController {
   ) {
     return this.DataService.getDataByName(nama, parseInt(page));
   }
+
+  @UseGuards(JwtGuard)
   @Get('/all/unverified')
   async getAllDataByUnverified() {
     return this.DataService.getAllDataByUnverified();
   }
+
+  @UseGuards(JwtGuard)
   @Get('/unverified/:page')
   async getDataByUnverified(@Param('page') page: string) {
     return this.DataService.getDataByUnverified(parseInt(page));
   }
+
+  @UseGuards(JwtGuard)
   @Get('/unverified/nama/:name/:page')
   async getDataByUnverifiedAndName(
     @Param('page') page: string,
@@ -74,14 +90,20 @@ export class DataController {
   ) {
     return this.DataService.getDataByUnverifiedAndName(parseInt(page), nama);
   }
+
+  @UseGuards(JwtGuard)
   @Get('/verified/:page')
   async getDataByVerified(@Param('page') page: string) {
     return this.DataService.getDataByVerified(parseInt(page));
   }
+
+  @UseGuards(JwtGuard)
   @Get('/all/verified')
   async getAllDataByVerified() {
     return this.DataService.getAllDataByVerified();
   }
+
+  @UseGuards(JwtGuard)
   @Get('/verified/nama/:name/:page')
   async getDataByVerifiedAndName(
     @Param('page') page: string,
@@ -90,19 +112,19 @@ export class DataController {
     return this.DataService.getDataByVerifiedAndName(parseInt(page), nama);
   }
 
-  @Delete('/delete/:id')
-  async deleteById(@Param('id') id: string) {
-    return this.DataService.deleteById(parseInt(id));
-  }
-
+  @UseGuards(JwtGuard)
   @Get('/all/notallowed')
   async getAllDataByNotAllowed() {
     return this.DataService.getAllDataByNotAllowed();
   }
+
+  @UseGuards(JwtGuard)
   @Get('/notallowed/:page')
   async getDataByNotAllowed(@Param('page') page: string) {
     return this.DataService.getDataByNotAllowed(parseInt(page));
   }
+
+  @UseGuards(JwtGuard)
   @Get('/notallowed/nama/:name/:page')
   async getDataByNotAllowedAndName(
     @Param('page') page: string,
@@ -111,10 +133,13 @@ export class DataController {
     return this.DataService.getDataByNotAllowedAndName(parseInt(page), nama);
   }
 
+  @UseGuards(JwtGuard)
   @Get('/kabupaten/:kabupaten/all')
   async getAllKabupaten(@Param('kabupaten') kabupaten: string) {
     return this.DataService.getAllKabupaten(kabupaten);
   }
+
+  @UseGuards(JwtGuard)
   @Get('/kabupaten/:kabupaten/page/:page')
   async getDataKabupaten(
     @Param('kabupaten') kabupaten: string,
@@ -124,6 +149,7 @@ export class DataController {
   }
 
   //udah
+  @UseGuards(JwtGuard)
   @Get('/kabupaten/:kabupaten/kecamatan/:kecamatan/:page')
   async getDataByKecamatan(
     @Param('page') page: string,
@@ -137,11 +163,13 @@ export class DataController {
     );
   }
 
+  @UseGuards(JwtGuard)
   @Get('/list/kecamatan')
   async getListKecamatan() {
     return this.DataService.getListKecamatan();
   }
 
+  @UseGuards(JwtGuard)
   @Get('/kabupaten/:kabupaten/nama/:nama/:page')
   async getDataByKabupatenAndName(
     @Param('page') page: string,
@@ -154,7 +182,9 @@ export class DataController {
       parseInt(page),
     );
   }
+
   //udah
+  @UseGuards(JwtGuard)
   @Get('/all/kabupaten/:kabupaten/kecamatan/:kecamatan')
   async getAllKecamatan(
     @Param('kabupaten') kabupaten: string,
@@ -164,6 +194,7 @@ export class DataController {
   }
 
   //udah
+  @UseGuards(JwtGuard)
   @Get('/kabupaten/:kabupaten/kecamatan/:kecamatan/status/:status/:page')
   async getDataByKecamatanAndStatus(
     @Param('page') page: string,
@@ -179,6 +210,7 @@ export class DataController {
     );
   }
 
+  @UseGuards(JwtGuard)
   @Get('/all/kabupaten/:kabupaten/kecamatan/:kecamatan/status/:status')
   async getAllDataByKecamatanAndStatus(
     @Param('kabupaten') kabupaten: string,
@@ -192,6 +224,8 @@ export class DataController {
     );
   }
   //udah
+
+  @UseGuards(JwtGuard)
   @Get('/kabupaten/:kabupaten/kecamatan/:kecamatan/nama/:nama/:page')
   async getDataByKecamatanAndName(
     @Param('kabupaten') kabupaten: string,
@@ -207,23 +241,33 @@ export class DataController {
     );
   }
 
+  @UseGuards(JwtGuard)
   @Post('add')
   async addData(@Body() dto: AddDataDto) {
     return this.DataService.addData(dto);
   }
 
+  @UseGuards(JwtGuard)
   @Get('/id/:id')
   async getDataById(@Param('id') id: string) {
     return this.DataService.getDataById(parseInt(id));
   }
 
+  @UseGuards(JwtGuard)
   @Patch('edit/:id')
   @UseInterceptors(FileInterceptor('file'))
   async editData(
+    @Request() req: any,
     @Param('id') id: string,
     @Body() dto: EditData,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.DataService.editDataById(parseInt(id), dto, file);
+    return this.DataService.editDataById(parseInt(id), dto, file, req);
+  }
+
+  @UseGuards(JwtGuard)
+  @Delete('/delete/:id')
+  async deleteById(@Param('id') id: string, @Request() req: any) {
+    return this.DataService.deleteById(parseInt(id), req);
   }
 }

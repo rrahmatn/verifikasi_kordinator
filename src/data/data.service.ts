@@ -12,41 +12,27 @@ import { AddDataDto, EditData, FilterKecamatanDto } from './dto/data.dto';
 import { join } from 'path';
 import { createWriteStream, readFileSync } from 'fs';
 import { readFile } from 'fs/promises';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class DataService {
+  constructor(
+    private prisma: PrismaService,
+    private jwt: JwtService,
+    private config: ConfigService,
+  ) {}
 
-  private readonly prisma = new PrismaClient();
-
-
-  async deleteAll(){
-    const response = await this.prisma.verifikasi_koordinator.deleteMany()
-  }
-
-
-  async deleteById(id: number) {
-    const user = await this.prisma.verifikasi_koordinator.delete({
-      where: {
-        id,
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException('data user tidak ditemukan');
-    }
-
-    return {
-      message: `data ${user.nama} berhasil di hapus`,
-      user,
-    };
+  async deleteAll() {
+    const response = await this.prisma.verifikasi_koordinator.deleteMany();
   }
 
   async convertExcelToJson(file: Express.Multer.File): Promise<any[]> {
+    const nama = file.originalname.split('.');
 
-    const nama = file.originalname.split(".")
-
-    if(nama[nama.length-1] !== "xlsx" && nama[nama.length-1] !== "xls"){
-      throw new BadRequestException('data file harus berupa spreadsheet')
+    if (nama[nama.length - 1] !== 'xlsx' && nama[nama.length - 1] !== 'xls') {
+      throw new BadRequestException('data file harus berupa spreadsheet');
     }
     try {
       const workbook = xlsx.read(file.buffer, { type: 'buffer' });
@@ -118,18 +104,33 @@ export class DataService {
         // Cek apakah data dengan NIK tersebut sudah ada di database
 
         if (data.nik) {
-
-          if(data.tps === "undefined" || data.tps === undefined || data.tps === null){
-            delete data.tps
+          if (
+            data.tps === 'undefined' ||
+            data.tps === undefined ||
+            data.tps === null
+          ) {
+            delete data.tps;
           }
-          if(data.rt === "undefined" || data.rt === undefined || data.rt === null){
-            delete data.rt
+          if (
+            data.rt === 'undefined' ||
+            data.rt === undefined ||
+            data.rt === null
+          ) {
+            delete data.rt;
           }
-          if(data.rw === "undefined" || data.rw === undefined || data.rw === null){
-            delete data.rw
+          if (
+            data.rw === 'undefined' ||
+            data.rw === undefined ||
+            data.rw === null
+          ) {
+            delete data.rw;
           }
-          if(data.nik === "undefined" || data.nik === undefined || data.nik === null){
-            delete data.nik
+          if (
+            data.nik === 'undefined' ||
+            data.nik === undefined ||
+            data.nik === null
+          ) {
+            delete data.nik;
           }
 
           const existingData =
@@ -146,32 +147,47 @@ export class DataService {
             sameNik.push(existingData.nik);
           }
         } else {
+          if (
+            data.tps === 'undefined' ||
+            data.tps === undefined ||
+            data.tps === null
+          ) {
+            delete data.tps;
+          }
+          if (
+            data.rt === 'undefined' ||
+            data.rt === undefined ||
+            data.rt === null
+          ) {
+            delete data.rt;
+          }
+          if (
+            data.rw === 'undefined' ||
+            data.rw === undefined ||
+            data.rw === null
+          ) {
+            delete data.rw;
+          }
+          if (
+            data.nik === 'undefined' ||
+            data.nik === undefined ||
+            data.nik === null
+          ) {
+            delete data.nik;
+          }
 
-          if(data.tps === "undefined" || data.tps === undefined || data.tps === null){
-            delete data.tps
-          }
-          if(data.rt === "undefined" || data.rt === undefined || data.rt === null){
-            delete data.rt
-          }
-          if(data.rw === "undefined" || data.rw === undefined || data.rw === null){
-            delete data.rw
-          }
-          if(data.nik === "undefined" || data.nik === undefined || data.nik === null){
-            delete data.nik
-          }
- 
           await this.prisma.verifikasi_koordinator.create({
-            data : {
-              nik : data.nik || "",
-              nama : data.nama || "",
-              telepon : data.telepon || "",
-              kabupaten : data.kabupaten || "",
-              kecamatan : data.kecamatan || "",
-              desa : data.desa || "",
-              rt : data.rt || "",
-              rw : data.rw || "",
-              tps : data.tps || "",
-            }
+            data: {
+              nik: data.nik || '',
+              nama: data.nama || '',
+              telepon: data.telepon || '',
+              kabupaten: data.kabupaten || '',
+              kecamatan: data.kecamatan || '',
+              desa: data.desa || '',
+              rt: data.rt || '',
+              rw: data.rw || '',
+              tps: data.tps || '',
+            },
           });
         }
       }
@@ -211,6 +227,13 @@ export class DataService {
       const response = await this.prisma.verifikasi_koordinator.findMany({
         skip: pages,
         take: 100,
+        where: {
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
+        },
         orderBy: {
           created_at: 'desc',
         },
@@ -219,17 +242,32 @@ export class DataService {
         {
           where: {
             status: 'belum terverifikasi',
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
       const disetujui = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi disetujui',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const ditolak = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi ditolak',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -253,22 +291,44 @@ export class DataService {
         orderBy: {
           status: 'desc',
         },
+        where: {
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
+        },
       });
       const belumTerverifikasi = await this.prisma.verifikasi_koordinator.count(
         {
           where: {
             status: 'belum terverifikasi',
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
       const disetujui = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi disetujui',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const ditolak = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi ditolak',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -308,6 +368,11 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -333,12 +398,22 @@ export class DataService {
         take: 100,
         where: {
           status: 'belum terverifikasi',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const belumTerverifikasi = await this.prisma.verifikasi_koordinator.count(
         {
           where: {
             status: 'belum terverifikasi',
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
@@ -350,6 +425,11 @@ export class DataService {
       const ditolak = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi ditolak',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -371,23 +451,43 @@ export class DataService {
       const response = await this.prisma.verifikasi_koordinator.findMany({
         where: {
           status: 'belum terverifikasi',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const belumTerverifikasi = await this.prisma.verifikasi_koordinator.count(
         {
           where: {
             status: 'belum terverifikasi',
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
       const disetujui = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi disetujui',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const ditolak = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi ditolak',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -426,7 +526,11 @@ export class DataService {
               },
             },
           ],
-
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
           status: 'belum terverifikasi',
         },
       });
@@ -434,17 +538,32 @@ export class DataService {
         {
           where: {
             status: 'belum terverifikasi',
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
       const disetujui = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi disetujui',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const ditolak = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi ditolak',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -471,23 +590,43 @@ export class DataService {
         take: 100,
         where: {
           status: 'verifikasi disetujui',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const belumTerverifikasi = await this.prisma.verifikasi_koordinator.count(
         {
           where: {
             status: 'belum terverifikasi',
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
       const disetujui = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi disetujui',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const ditolak = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi ditolak',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -509,23 +648,43 @@ export class DataService {
       const response = await this.prisma.verifikasi_koordinator.findMany({
         where: {
           status: 'verifikasi disetujui',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const belumTerverifikasi = await this.prisma.verifikasi_koordinator.count(
         {
           where: {
             status: 'belum terverifikasi',
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
       const disetujui = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi disetujui',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const ditolak = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi ditolak',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -564,6 +723,11 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
           status: 'verifikasi disetujui',
         },
       });
@@ -571,17 +735,32 @@ export class DataService {
         {
           where: {
             status: 'belum terverifikasi',
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
       const disetujui = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi disetujui',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const ditolak = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi ditolak',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -608,23 +787,43 @@ export class DataService {
         take: 100,
         where: {
           status: 'verifikasi ditolak',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const belumTerverifikasi = await this.prisma.verifikasi_koordinator.count(
         {
           where: {
             status: 'belum terverifikasi',
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
       const disetujui = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi disetujui',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const ditolak = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi ditolak',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -646,23 +845,43 @@ export class DataService {
       const response = await this.prisma.verifikasi_koordinator.findMany({
         where: {
           status: 'verifikasi ditolak',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const belumTerverifikasi = await this.prisma.verifikasi_koordinator.count(
         {
           where: {
             status: 'belum terverifikasi',
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
       const disetujui = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi disetujui',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const ditolak = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi ditolak',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -701,6 +920,11 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
 
           status: 'verifikasi ditolak',
         },
@@ -709,17 +933,32 @@ export class DataService {
         {
           where: {
             status: 'belum terverifikasi',
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
       const disetujui = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi disetujui',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const ditolak = await this.prisma.verifikasi_koordinator.count({
         where: {
           status: 'verifikasi ditolak',
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -758,6 +997,11 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
         orderBy: {
           status: 'desc',
@@ -779,6 +1023,11 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const belumTerverifikasi = await this.prisma.verifikasi_koordinator.count(
@@ -800,6 +1049,11 @@ export class DataService {
                 status: 'belum terverifikasi',
               },
             ],
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
@@ -822,6 +1076,11 @@ export class DataService {
                 status: 'verifikasi disetujui',
               },
             ],
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         });
       const verifikasiDitolak = await this.prisma.verifikasi_koordinator.count({
@@ -842,6 +1101,11 @@ export class DataService {
               status: 'verifikasi ditolak',
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -882,7 +1146,13 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
+
         orderBy: {
           status: 'desc',
         },
@@ -901,10 +1171,15 @@ export class DataService {
     }
   }
 
-  private cleanAndFilterKecamatan(entries : any) {
+  private cleanAndFilterKecamatan(entries: any) {
     return entries
-      .map((entry : any) => entry.kecamatan)
-      .filter((kecamatan : string | undefined) => kecamatan !== undefined && kecamatan.trim() !== '' && kecamatan.trim() !== "undefined");
+      .map((entry: any) => entry.kecamatan)
+      .filter(
+        (kecamatan: string | undefined) =>
+          kecamatan !== undefined &&
+          kecamatan.trim() !== '' &&
+          kecamatan.trim() !== 'undefined',
+      );
   }
 
   async getListKecamatan() {
@@ -915,7 +1190,9 @@ export class DataService {
     const paraKecamatan = this.cleanAndFilterKecamatan(uniqueKecamatans);
 
     if (paraKecamatan.length < 1) {
-      throw new NotFoundException('Tidak ada data kecamatan yang terdaftar di database');
+      throw new NotFoundException(
+        'Tidak ada data kecamatan yang terdaftar di database',
+      );
     }
 
     const uniqGarut = await this.prisma.verifikasi_koordinator.findMany({
@@ -923,17 +1200,22 @@ export class DataService {
         OR: [
           {
             kabupaten: {
-              contains: "kabupaten garut",
+              contains: 'kabupaten garut',
               mode: 'insensitive',
             },
           },
           {
             kabupaten: {
-              contains: "kabupatengarut",
+              contains: 'kabupatengarut',
               mode: 'insensitive',
             },
           },
         ],
+        NOT: {
+          modifikasi: {
+            contains: 'dihapus',
+          },
+        },
       },
       distinct: ['kecamatan'],
     });
@@ -945,17 +1227,22 @@ export class DataService {
         OR: [
           {
             kabupaten: {
-              contains: "kabupaten tasikmalaya",
+              contains: 'kabupaten tasikmalaya',
               mode: 'insensitive',
             },
           },
           {
             kabupaten: {
-              contains: "kabupatentasikmalaya",
+              contains: 'kabupatentasikmalaya',
               mode: 'insensitive',
             },
           },
         ],
+        NOT: {
+          modifikasi: {
+            contains: 'dihapus',
+          },
+        },
       },
       distinct: ['kecamatan'],
     });
@@ -967,17 +1254,22 @@ export class DataService {
         OR: [
           {
             kabupaten: {
-              contains: "kota tasikmalaya",
+              contains: 'kota tasikmalaya',
               mode: 'insensitive',
             },
           },
           {
             kabupaten: {
-              contains: "kotatasikmalaya",
+              contains: 'kotatasikmalaya',
               mode: 'insensitive',
             },
           },
         ],
+        NOT: {
+          modifikasi: {
+            contains: 'dihapus',
+          },
+        },
       },
       distinct: ['kecamatan'],
     });
@@ -994,8 +1286,6 @@ export class DataService {
       },
     };
   }
-
-
 
   async getDataByKecamatan(kabupaten: string, kecamatan: string, page: number) {
     const pages: number = 100 * page;
@@ -1017,6 +1307,11 @@ export class DataService {
                 },
               },
             ],
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
 
           distinct: ['kecamatan'],
@@ -1050,6 +1345,11 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
         orderBy: {
           status: 'desc',
@@ -1084,6 +1384,11 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -1114,6 +1419,11 @@ export class DataService {
                 status: 'belum terverifikasi',
               },
             ],
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
@@ -1144,6 +1454,11 @@ export class DataService {
               status: 'verifikasi disetujui',
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -1173,13 +1488,18 @@ export class DataService {
               status: 'verifikasi ditolak',
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
       return {
         message: `Berhasil mendapatkan ${response.length} dari ${length} data`,
         jumlah: {
-          jumlah : length,
+          jumlah: length,
           belumTerverifikasi,
           disetujui,
           ditolak,
@@ -1226,6 +1546,11 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -1248,6 +1573,11 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -1270,6 +1600,11 @@ export class DataService {
                 status: 'belum terverifikasi',
               },
             ],
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
@@ -1292,6 +1627,11 @@ export class DataService {
               status: 'verifikasi disetujui',
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const ditolak = await this.prisma.verifikasi_koordinator.count({
@@ -1312,6 +1652,11 @@ export class DataService {
               status: 'verifikasi ditolak',
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -1356,6 +1701,11 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -1386,6 +1736,11 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -1414,6 +1769,11 @@ export class DataService {
                 },
               },
             ],
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
@@ -1441,6 +1801,11 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const ditolak = await this.prisma.verifikasi_koordinator.count({
@@ -1467,6 +1832,11 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -1523,6 +1893,11 @@ export class DataService {
                 },
               },
             ],
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
           distinct: ['kecamatan'],
         });
@@ -1556,6 +1931,11 @@ export class DataService {
               status: inistatus,
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -1588,6 +1968,11 @@ export class DataService {
               status: inistatus,
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -1618,6 +2003,11 @@ export class DataService {
                 status: 'belum terverifikasi',
               },
             ],
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
@@ -1647,6 +2037,11 @@ export class DataService {
               status: 'verifikasi disetujui',
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const ditolak = await this.prisma.verifikasi_koordinator.count({
@@ -1675,6 +2070,11 @@ export class DataService {
               status: 'verifikasi ditolak',
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -1698,7 +2098,6 @@ export class DataService {
     kecamatan: string,
     status: string,
   ) {
-
     let inistatus: string;
 
     if (status.toLowerCase() === '') {
@@ -1738,6 +2137,11 @@ export class DataService {
               status: inistatus,
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -1770,6 +2174,11 @@ export class DataService {
               status: inistatus,
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -1800,6 +2209,11 @@ export class DataService {
                 status: 'belum terverifikasi',
               },
             ],
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
@@ -1829,6 +2243,11 @@ export class DataService {
               status: 'verifikasi disetujui',
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const ditolak = await this.prisma.verifikasi_koordinator.count({
@@ -1857,13 +2276,18 @@ export class DataService {
               status: 'verifikasi ditolak',
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
       return {
         message: `berhasil mendapatkan ${response.length} dari ${length} data`,
         jumlah: {
-          jumlah : length,
+          jumlah: length,
           belumTerverifikasi,
           disetujui,
           ditolak,
@@ -1918,6 +2342,11 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -1948,6 +2377,11 @@ export class DataService {
               },
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -1978,6 +2412,11 @@ export class DataService {
                 status: 'belum terverifikasi',
               },
             ],
+            NOT: {
+              modifikasi: {
+                contains: 'dihapus',
+              },
+            },
           },
         },
       );
@@ -2007,6 +2446,11 @@ export class DataService {
               status: 'verifikasi disetujui',
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
       const ditolak = await this.prisma.verifikasi_koordinator.count({
@@ -2035,6 +2479,11 @@ export class DataService {
               status: 'verifikasi ditolak',
             },
           ],
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -2054,6 +2503,18 @@ export class DataService {
   }
 
   async addData(dto: AddDataDto) {
+    const sameNIk = await this.prisma.verifikasi_koordinator.findFirst({
+      where: {
+        nik: dto.nik,
+      },
+    });
+
+    if (sameNIk) {
+      throw new BadRequestException(
+        `nik sudah tedaftar sebagai ${sameNIk.nama}`,
+      );
+    }
+
     try {
       const response = await this.prisma.verifikasi_koordinator.create({
         data: {
@@ -2079,6 +2540,11 @@ export class DataService {
       const response = await this.prisma.verifikasi_koordinator.findUnique({
         where: {
           id: id,
+          NOT: {
+            modifikasi: {
+              contains: 'dihapus',
+            },
+          },
         },
       });
 
@@ -2100,7 +2566,26 @@ export class DataService {
     return buffer.toString('base64');
   }
 
-  async editDataById(id: number, dto: EditData, foto_ktp: Express.Multer.File) {
+  async editDataById(
+    id: number,
+    dto: EditData,
+    foto_ktp: Express.Multer.File,
+    req: any,
+  ) {
+    const token = req.headers.authorization?.split(' ') ?? [];
+    const accessToken = token[1];
+
+    const payload = await this.jwt.verifyAsync(accessToken, {
+      secret: this.config.get('JWT_SECRET'),
+    });
+    const adminId = payload.sub;
+
+    const user = await this.prisma.users.findUnique({
+      where: {
+        id: adminId,
+      },
+    });
+
     try {
       const base64String = foto_ktp
         ? await this.arrayBufferToBase64(foto_ktp.buffer)
@@ -2112,6 +2597,7 @@ export class DataService {
         },
         data: {
           image64: base64String,
+          modifikasi: `diedit oleh ${user.nama}`,
           ...dto,
         },
       });
@@ -2128,5 +2614,41 @@ export class DataService {
     } catch (error) {
       throw new BadRequestException('Data tidak valid');
     }
+  }
+
+  async deleteById(id: number, req: any) {
+    const token = req.headers.authorization?.split(' ') ?? [];
+    const accessToken = token[1];
+
+    const payload = await this.jwt.verifyAsync(accessToken, {
+      secret: this.config.get('JWT_SECRET'),
+    });
+    const adminId = payload.sub;
+
+    const user = await this.prisma.users.findUnique({
+      where: {
+        id: adminId,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('data user tidak ditemukan');
+    }
+
+    const deletedUser = await this.prisma.verifikasi_koordinator.update({
+      where: {
+        id: id,
+      },
+      data: {
+        nik: 'deleted',
+        modifikasi: `dihapus oleh ${user.nama}`,
+      },
+    });
+
+    return {
+      message: `data ${deletedUser} berhasil di hapus oleh ${user.nama}`,
+      data: deletedUser,
+      admin: user,
+    };
   }
 }

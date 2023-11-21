@@ -35,9 +35,7 @@ export class EditData {
 
   @ApiProperty()
   @IsOptional()
-  @IsPhoneNumber('ID', {
-    message: 'Telepon harus berupa nomor telepon Indonesia',
-  })
+  @IsString()
   telepon?: string;
 
 
