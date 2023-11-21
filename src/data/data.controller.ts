@@ -43,11 +43,7 @@ export class DataController {
     }
   }
 
-  @UseGuards(JwtGuard)
-  @Delete()
-  async deleteAll() {
-    return this.DataService.deleteAll();
-  }
+ 
 
   @UseGuards(JwtGuard)
   @Get('/page/:page')
