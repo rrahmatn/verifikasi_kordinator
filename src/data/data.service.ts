@@ -1648,6 +1648,187 @@ export class DataService {
       throw new NotFoundException('tidak ada data ditemukan');
     }
   }
+  async getAllDataByKecamatanAndStatus(
+    kabupaten: string,
+    kecamatan: string,
+    status: string,
+  ) {
+
+    let inistatus: string;
+
+    if (status.toLowerCase() === '') {
+      inistatus = '';
+    } else if (status.toLowerCase() === 'unverified') {
+      inistatus = 'belum terverifikasi';
+    } else if (status.toLowerCase() === 'verified') {
+      inistatus = 'verifikasi disetujui';
+    } else if (status.toLowerCase() === 'notverified') {
+      inistatus = 'verifikasi ditolak';
+    }
+
+    try {
+      const response = await this.prisma.verifikasi_koordinator.findMany({
+        where: {
+          OR: [
+            {
+              kabupaten: {
+                contains: kabupaten.toLowerCase().replace(/\s/g, ''),
+                mode: 'insensitive',
+              },
+              kecamatan: {
+                contains: kecamatan.toLowerCase().replace(/\s/g, ''),
+                mode: 'insensitive',
+              },
+              status: inistatus,
+            },
+            {
+              kabupaten: {
+                contains: kabupaten,
+                mode: 'insensitive',
+              },
+              kecamatan: {
+                contains: kecamatan,
+                mode: 'insensitive',
+              },
+              status: inistatus,
+            },
+          ],
+        },
+      });
+
+      if (response.length < 1) {
+        throw new NotFoundException('data tidak ditemukan');
+      }
+      const length = await this.prisma.verifikasi_koordinator.count({
+        where: {
+          OR: [
+            {
+              kabupaten: {
+                contains: kabupaten.toLowerCase().replace(/\s/g, ''),
+                mode: 'insensitive',
+              },
+              kecamatan: {
+                contains: kecamatan.toLowerCase().replace(/\s/g, ''),
+                mode: 'insensitive',
+              },
+              status: inistatus,
+            },
+            {
+              kabupaten: {
+                contains: kabupaten,
+                mode: 'insensitive',
+              },
+              kecamatan: {
+                contains: kecamatan,
+                mode: 'insensitive',
+              },
+              status: inistatus,
+            },
+          ],
+        },
+      });
+
+      const belumTerverifikasi = await this.prisma.verifikasi_koordinator.count(
+        {
+          where: {
+            OR: [
+              {
+                kabupaten: {
+                  contains: kabupaten.toLowerCase().replace(/\s/g, ''),
+                  mode: 'insensitive',
+                },
+                kecamatan: {
+                  contains: kecamatan.toLowerCase().replace(/\s/g, ''),
+                  mode: 'insensitive',
+                },
+                status: 'belum terverifikasi',
+              },
+              {
+                kabupaten: {
+                  contains: kabupaten,
+                  mode: 'insensitive',
+                },
+                kecamatan: {
+                  contains: kecamatan,
+                  mode: 'insensitive',
+                },
+                status: 'belum terverifikasi',
+              },
+            ],
+          },
+        },
+      );
+      const disetujui = await this.prisma.verifikasi_koordinator.count({
+        where: {
+          OR: [
+            {
+              kabupaten: {
+                contains: kabupaten.toLowerCase().replace(/\s/g, ''),
+                mode: 'insensitive',
+              },
+              kecamatan: {
+                contains: kecamatan.toLowerCase().replace(/\s/g, ''),
+                mode: 'insensitive',
+              },
+              status: 'verifikasi disetujui',
+            },
+            {
+              kabupaten: {
+                contains: kabupaten,
+                mode: 'insensitive',
+              },
+              kecamatan: {
+                contains: kecamatan,
+                mode: 'insensitive',
+              },
+              status: 'verifikasi disetujui',
+            },
+          ],
+        },
+      });
+      const ditolak = await this.prisma.verifikasi_koordinator.count({
+        where: {
+          OR: [
+            {
+              kabupaten: {
+                contains: kabupaten.toLowerCase().replace(/\s/g, ''),
+                mode: 'insensitive',
+              },
+              kecamatan: {
+                contains: kecamatan.toLowerCase().replace(/\s/g, ''),
+                mode: 'insensitive',
+              },
+              status: 'verifikasi ditolak',
+            },
+            {
+              kabupaten: {
+                contains: kabupaten,
+                mode: 'insensitive',
+              },
+              kecamatan: {
+                contains: kecamatan,
+                mode: 'insensitive',
+              },
+              status: 'verifikasi ditolak',
+            },
+          ],
+        },
+      });
+
+      return {
+        message: `berhasil mendapatkan ${response.length} dari ${length} data`,
+        jumlah: {
+          jumlah : length,
+          belumTerverifikasi,
+          disetujui,
+          ditolak,
+        },
+        response,
+      };
+    } catch (error) {
+      throw new NotFoundException('tidak ada data ditemukan');
+    }
+  }
 
   async getDataByKecamatanAndName(
     kabupaten: string,

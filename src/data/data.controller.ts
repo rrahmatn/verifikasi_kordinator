@@ -178,6 +178,19 @@ export class DataController {
       parseInt(page),
     );
   }
+
+  @Get('/all/kabupaten/:kabupaten/kecamatan/:kecamatan/status/:status')
+  async getAllDataByKecamatanAndStatus(
+    @Param('kabupaten') kabupaten: string,
+    @Param('kecamatan') kecamatan: string,
+    @Param('status') status: string,
+  ) {
+    return this.DataService.getAllDataByKecamatanAndStatus(
+      kabupaten,
+      kecamatan,
+      status,
+    );
+  }
   //udah
   @Get('/kabupaten/:kabupaten/kecamatan/:kecamatan/nama/:nama/:page')
   async getDataByKecamatanAndName(
