@@ -15,7 +15,13 @@ import { readFile } from 'fs/promises';
 
 @Injectable()
 export class DataService {
+
   private readonly prisma = new PrismaClient();
+
+
+  async deleteAll(){
+    const response = await this.prisma.verifikasi_koordinator.deleteMany()
+  }
 
 
   async deleteById(id: number) {
@@ -36,6 +42,12 @@ export class DataService {
   }
 
   async convertExcelToJson(file: Express.Multer.File): Promise<any[]> {
+
+    const nama = file.originalname.split(".")
+
+    if(nama[nama.length-1] !== "xlsx" && nama[nama.length-1] !== "xls"){
+      throw new BadRequestException('data file harus berupa spreadsheet')
+    }
     try {
       const workbook = xlsx.read(file.buffer, { type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
@@ -106,6 +118,20 @@ export class DataService {
         // Cek apakah data dengan NIK tersebut sudah ada di database
 
         if (data.nik) {
+
+          if(data.tps === "undefined" || data.tps === undefined || data.tps === null){
+            delete data.tps
+          }
+          if(data.rt === "undefined" || data.rt === undefined || data.rt === null){
+            delete data.rt
+          }
+          if(data.rw === "undefined" || data.rw === undefined || data.rw === null){
+            delete data.rw
+          }
+          if(data.nik === "undefined" || data.nik === undefined || data.nik === null){
+            delete data.nik
+          }
+
           const existingData =
             await this.prisma.verifikasi_koordinator.findFirst({
               where: { nik: data.nik },
@@ -120,8 +146,32 @@ export class DataService {
             sameNik.push(existingData.nik);
           }
         } else {
+
+          if(data.tps === "undefined" || data.tps === undefined || data.tps === null){
+            delete data.tps
+          }
+          if(data.rt === "undefined" || data.rt === undefined || data.rt === null){
+            delete data.rt
+          }
+          if(data.rw === "undefined" || data.rw === undefined || data.rw === null){
+            delete data.rw
+          }
+          if(data.nik === "undefined" || data.nik === undefined || data.nik === null){
+            delete data.nik
+          }
+ 
           await this.prisma.verifikasi_koordinator.create({
-            data,
+            data : {
+              nik : data.nik || "",
+              nama : data.nama || "",
+              telepon : data.telepon || "",
+              kabupaten : data.kabupaten || "",
+              kecamatan : data.kecamatan || "",
+              desa : data.desa || "",
+              rt : data.rt || "",
+              rw : data.rw || "",
+              tps : data.tps || "",
+            }
           });
         }
       }
