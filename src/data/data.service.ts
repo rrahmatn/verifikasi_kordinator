@@ -17,11 +17,6 @@ import { readFile } from 'fs/promises';
 export class DataService {
   private readonly prisma = new PrismaClient();
 
-  async deleteAll() {
-    const response = await this.prisma.verifikasi_koordinator.deleteMany();
-
-    return response;
-  }
 
   async deleteById(id: number) {
     const user = await this.prisma.verifikasi_koordinator.delete({
@@ -1456,7 +1451,7 @@ export class DataService {
       inistatus = 'belum terverifikasi';
     } else if (status.toLowerCase() === 'verified') {
       inistatus = 'verifikasi disetujui';
-    } else if (status.toLowerCase() === 'notverified') {
+    } else if (status.toLowerCase() === 'notallowed') {
       inistatus = 'verifikasi ditolak';
     }
 
@@ -1662,7 +1657,7 @@ export class DataService {
       inistatus = 'belum terverifikasi';
     } else if (status.toLowerCase() === 'verified') {
       inistatus = 'verifikasi disetujui';
-    } else if (status.toLowerCase() === 'notverified') {
+    } else if (status.toLowerCase() === 'notallowed') {
       inistatus = 'verifikasi ditolak';
     }
 

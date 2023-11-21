@@ -38,10 +38,6 @@ export class DataController {
     }
   }
 
-  @Delete('')
-  async deleteAll() {
-    return this.DataService.deleteAll();
-  }
 
   @Get('/page/:page')
   async getData(@Param('page') page: string) {
